@@ -1,0 +1,137 @@
+--
+-- Table structure for table `outgoing`
+--
+
+CREATE TABLE IF NOT EXISTS `outgoing` (
+  `MESSAGEID` int(11) NOT NULL AUTO_INCREMENT,
+  `PHONENUMBER` varchar(20) NOT NULL,
+  `MESSAGETEXT` varchar(500) NOT NULL,
+  `SUCCESSSTATUS` varchar(20) DEFAULT NULL,
+  `ATTEMPTCOUNT` int(11) DEFAULT NULL,
+  `TRANSACTIONMODE` varchar(5) DEFAULT NULL,
+  `DELIVERYTIME` datetime DEFAULT NULL,
+  `ODREQUESTID` int(25) DEFAULT NULL,
+  `EXPIRYMINUTES` varchar(3) DEFAULT NULL,
+  `SUBMITTEDTIME` bigint(30) DEFAULT NULL,
+  `PROCESSEDTIME` bigint(20) DEFAULT NULL,
+  `MIPCONNECTIONTIME` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
+  `MIPRESPONSETIME` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
+  `MIPRESPONSEID` varchar(40) DEFAULT NULL,
+  `MIPRESPONSE` varchar(300) DEFAULT NULL,
+  `CARRIERSTATUS` varchar(300) DEFAULT NULL,
+  `MASK` varchar(30) DEFAULT NULL,
+  `PRIORITY` int(2) DEFAULT NULL,
+  PRIMARY KEY (`MESSAGEID`)
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
+
+
+
+--
+-- Table structure for table `rules`
+--
+
+CREATE TABLE IF NOT EXISTS `rules` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(20) NOT NULL,
+  `type` enum('load_balance','regex','priority') NOT NULL DEFAULT 'load_balance',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `rule_properties`
+--
+
+CREATE TABLE IF NOT EXISTS `rule_properties` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `rule_id` int(11) NOT NULL,
+  `vendor_load_balance` varchar(45) DEFAULT NULL,
+  `vendor_regex` varchar(45) DEFAULT NULL,
+  `vendor_priority` varchar(45) DEFAULT NULL,
+  `vendor_failover_sequence` varchar(45) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `rule_id` (`rule_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `schemainfo`
+--
+
+CREATE TABLE IF NOT EXISTS `schemainfo` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `database_type` enum('MYSQL','MSSQL','ORACLE') NOT NULL DEFAULT 'MYSQL',
+  `host` varchar(20) NOT NULL,
+  `hostname` varchar(20) DEFAULT NULL,
+  `database` varchar(20) NOT NULL,
+  `username` varchar(20) DEFAULT NULL,
+  `password` varchar(20) DEFAULT NULL,
+  `table_name` varchar(20) NOT NULL,
+  `query` varchar(500) NOT NULL,
+  `columns` varchar(100) NOT NULL,
+  `condition` varchar(200) DEFAULT NULL,
+  `status` tinyint(1) NOT NULL DEFAULT '1',
+  `priority` enum('HIGH','MEDIUM','LOW') NOT NULL DEFAULT 'MEDIUM',
+  `rule_id` int(11) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `rule_id` (`rule_id`)
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
+
+--
+-- Table structure for table `vendors`
+--
+
+CREATE TABLE IF NOT EXISTS `vendors` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(20) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1;
+
+---
+
+--
+-- Table structure for table `vendor_params`
+--
+
+CREATE TABLE IF NOT EXISTS `vendor_params` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `vendor_id` int(11) DEFAULT NULL,
+  `protocol` enum('http','https','smtp') NOT NULL DEFAULT 'http',
+  `url` varchar(200) NOT NULL,
+  `params` varchar(300) NOT NULL,
+  `multi_message_support` tinyint(1) NOT NULL DEFAULT '0',
+  `unicode_support` tinyint(1) NOT NULL DEFAULT '1',
+  PRIMARY KEY (`id`),
+  KEY `vendor_id` (`vendor_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
+
+--
+-- Constraints for dumped tables
+--
+
+--
+-- Constraints for table `message_status`
+--
+ALTER TABLE `message_status`
+  ADD CONSTRAINT `message_status_ibfk_1` FOREIGN KEY (`message_id`) REFERENCES `messages` (`id`);
+
+--
+-- Constraints for table `rule_properties`
+--
+ALTER TABLE `rule_properties`
+  ADD CONSTRAINT `rule_properties_ibfk_1` FOREIGN KEY (`rule_id`) REFERENCES `rules` (`id`);
+
+--
+-- Constraints for table `schemainfo`
+--
+ALTER TABLE `schemainfo`
+  ADD CONSTRAINT `schemainfo_ibfk_1` FOREIGN KEY (`rule_id`) REFERENCES `rules` (`id`);
+
+--
+-- Constraints for table `vendor_params`
+--
+ALTER TABLE `vendor_params`
+  ADD CONSTRAINT `vendor_params_ibfk_1` FOREIGN KEY (`vendor_id`) REFERENCES `vendors` (`id`);
+
