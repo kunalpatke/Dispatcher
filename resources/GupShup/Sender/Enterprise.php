@@ -103,8 +103,8 @@ class Sender_Enterprise extends Sender {
             unlink($fileName);
         }
         $return = new stdClass();
-        $return->success = preg_match('/^success/', $response);
-        if($return->success) {
+        $return->success = preg_match('/^success/', $response);        
+		if($return->success) {
             $data = explode("|",$response);            
             preg_match("/\d+/", $data[sizeof($data)-1], $matches);
             $causeId = $matches[0];

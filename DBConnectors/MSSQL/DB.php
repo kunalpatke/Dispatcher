@@ -20,14 +20,14 @@ class DB {
       {                              
           Logger::configure('../../config/log.properties');
           $this->logger = Logger::getLogger("Dispatcher.MSSQL");
-          $link = mssql_connect($host. "\\" . $database,$username, $password);
+          $link = odbc_connect("Driver={SQL Server Native Client 10.0};Server=$host;Database=$database;",$username, $password);
           if (!$link) {              
               throw new Exception("MSSQL Database server could not be connected. Error: " . mssql_get_last_message() );
           }
-          $selected = mssql_select_db($database);
-          if(!$selected) {              
-              throw new Exception("Cannot connect to $database DB. Error: ". mssql_get_last_message());
-          }       
+          //$selected = mssql_select_db($database);
+          //if(!$selected) {              
+            //  throw new Exception("Cannot connect to $database DB. Error: ". mssql_get_last_message());
+          //}       
           $this->conn= $link;
           return TRUE;
       }
@@ -35,10 +35,10 @@ class DB {
       public function runQuery($query){
           $this->logger->info("Query: " . $query );
           try {                            
-              $ans = mssql_query($query, $this->conn);
+              $ans = odbc_exec( $this->conn,$query);
               $result = Array();
               if (!$ans) {                  
-                  throw new Exception(mssql_get_last_message());
+                  throw new Exception(odbc_error());
               }
           } catch(Exception $e) {
               throw $e;
@@ -47,13 +47,13 @@ class DB {
           $words = explode(" ", trim($query));
           $firstWord = strtoupper($words[0]);
           if ($firstWord == "SELECT") {
-              while ($data = mssql_fetch_assoc($ans)) {
+              while ($data = odbc_fetch_array($ans)) {
                   $result[] = $data;
               }
               $this->logger->info("Rows returned: " . sizeof($result));
               $this->result = $result;
           } else {
-              $n = mssql_rows_affected();
+              $n = odbc_num_rows();
               $this->logger->info("Affected $n rows.");
               $this->result= $n;
           }
@@ -73,7 +73,7 @@ class DB {
           if($condition != "")
               $query .= " where $condition";          
           try{
-          $ans = mssql_query($query, $this->conn);
+          $ans = mssql_query($query);
           while ($data = mssql_fetch_assoc($ans)) {
             $result[] = $data;
           }
@@ -82,10 +82,29 @@ class DB {
           }
           return $result;
       }
-      
+      public function getResult(){
+          return $this->result;
+      }
+
       public function closeCxn(){
-          mssql_close($this->conn);
+          odbc_close($this->conn);
       }                         
 }
+
+  /*try{
+    $db = new DB('dispatcher\sqlexpress','','dispatcher','webaroo','webar00');
+    if($db){      
+     $db->runQuery("select * from outgoing");
+      var_dump($db->getResult());
+	  echo "connected";
+    }
+    else{
+      echo "ORACLE NOT CONNECTED";
+    }
+  }
+  catch(Exception $e){
+      print_r($e->getMessage());
+ }  */
+
 
 ?>

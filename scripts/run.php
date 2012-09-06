@@ -35,7 +35,7 @@ if(is_array($configData)){
         $obj = new GenericClass();        
         $obj->getConnection($databaseType,$host,$hostName,$db,$userName,$password);
         $schemaData = $obj->getSchemaData();  
-        while(1){
+        //while(1){
             foreach($schemaData as $hostData){
                 // if status is true, call async connector.php script and pass the data with it.
                 if($hostData['status']){
@@ -49,7 +49,7 @@ if(is_array($configData)){
                     else
                         $vendorData = serialize ($vendorData);
                     $ruleType = $obj->getRuleType();
-                    $params=array("host"=>$hostData['host'],"database_type"=>$hostData['database_type'],"db"=>$hostData['database_name'],"username"=>$hostData['username'],"password"=>$hostData['password'],"priority"=>$hostData['priority'],"table"=>$hostData['table'],"query"=>$hostData['query'],"ruleType"=>$ruleType,"vendorData"=>$vendorData);                        
+                    $params=array("host"=>$hostData['host'],"database_type"=>$hostData['database_type'],"db"=>$hostData['database_name'],"username"=>$hostData['username'],"password"=>$hostData['password'],"priority"=>$hostData['priority'],"table"=>$hostData['table_name'],"query"=>$hostData['query'],"ruleType"=>$ruleType,"vendorData"=>$vendorData);                        
                     AsyncCall::curl_post_async($url,$params);
                     $logger->info("Async call made to: " . $hostData['host']);
                 }else{
@@ -59,7 +59,7 @@ if(is_array($configData)){
             //$obj->closeDBConnection();
             sleep(5);
             $logger->info("\n\n\n-------CALLING AGAIN--------\n\n\n");
-        }
+        //}
     }
     catch(Exception $e){        
         $logger->error("Exception: " . $e->getMessage());

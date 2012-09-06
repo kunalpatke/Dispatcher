@@ -59,6 +59,7 @@ try{
         $logger->info("Message status updated to PICKED on $host");        
         // check for ruleType and decide the msg distribution accross vendors          
         $response = $sender->sendMsg();
+		
         $processedTime = time();
         if($response->success){
             $logger->info("Message succesfully sent. API Response: " . $response->response); 

@@ -22,7 +22,7 @@ class GenericClass {
     }
     
     public function getSchemaData(){
-        $this->conn->runQuery("select * from schema_info");
+        $this->conn->runQuery("select * from schemainfo");
         return $this->conn->getResult();
     }
     
