@@ -14,7 +14,7 @@ require_once dirname(__FILE__).'/../../resources/log4php/Logger.php';
       private $logger;
       private $result;
       
-      public function __construct($host,$hostName,$database,$username,$password)
+      public function __construct($host,$database,$username,$password)
       {                              
           Logger::configure('../../config/log.properties');
           $this->logger = Logger::getLogger("Dispatcher.MYSQLDB");

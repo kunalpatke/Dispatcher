@@ -13,16 +13,31 @@ class GenericClass {
     private $ruleId;
     private $ruleType="DEFAULT";
     private $ruleData;
+    private $timezone;
+    private $table;
+    private $transactionId;
+    private $messageId;
     
-    public function __construct() {}
-    
-    public function getConnection($databaseType,$host,$hostName,$db,$userName,$password){
-        require_once dirname(__FILE__).'/../../DBConnectors/'.$databaseType.'/DB.php';
-        $this->conn = new DB($host,$hostName,$db,$userName,$password);
+    public function __construct($timezone) {
+        $this->setTimezone($timezone);        
     }
     
-    public function getSchemaData(){
-        $this->conn->runQuery("select * from schemainfo");
+    private function setTimezone($tz){
+        $this->timezone = $timezone;
+        date_default_timezone_set($this->timezone);
+    }
+    
+    public function getConnection($databaseType,$host,$db,$userName,$password,$table){
+        $this->table = $table;
+        require_once dirname(__FILE__).'/../../DBConnectors/'.$databaseType.'/DB.php';
+        $this->conn = new DB($host,$db,$userName,$password);
+    }
+    
+    public function getSchemaData($condition=""){
+        $query = "select * from " . $this->table;
+        if($condition !="")
+            $query .= " " . $condition;
+        $this->conn->runQuery($query);
         return $this->conn->getResult();
     }
     
@@ -76,6 +91,45 @@ class GenericClass {
     private function getVendor($vendorId){
         $this->conn->runQuery("select vendor.name as name,vp.protocol as protocol,vp.url as url,vp.params as params,vp.multiple_message_support as mutiSupport,vp.unicode_support as unicodeSupport from vendor, vendor_params vp where vendor.id = '".$vendorId."' and vendor.id = vp.vendor_id");
         return $this->conn->getResult();
+    }
+    
+    public function getCurrentTimestamp(){
+        return time()*1000;
+    }
+    
+    public function getMessages($query){
+        $this->conn->runQuery($query);
+        return $this->conn->getResult();
+    }
+    
+    public function updateMessageTable($query){
+        $this->conn->runQuery($query);
+        return TRUE;
+    }
+    
+    public function computeTransMsgId($format,$splitter,$transId,$msgId){
+        if(strtoupper(format) == "DOUBLE"){
+            $arr = explode($splitter,$transId);
+            if(sizeof($arr) == 2){
+                $this->transactionId = $arr[0];
+                $this->messageId = $arr[1];
+            }
+            else{
+                return FALSE;
+            }
+        }else{
+            $this->transactionId = $transId;
+            $this->messageId = $msgId;
+        }
+        return TRUE;
+    }
+    
+    public function getTransId(){
+        return $this->transactionId;
+    }
+    
+    public function getMsgId(){
+        return $this->messageId;
     }
 }
 

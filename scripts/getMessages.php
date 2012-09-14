@@ -11,14 +11,11 @@
 set_time_limit(0);
 ini_set('memory_limit','1G');
 require_once dirname(__FILE__).'/../resources/log4php/Logger.php';
-Logger::configure('../config/log.properties');
-$logger = Logger::getLogger("Dispatcher.getMsg");
-$logger->info("Recieved hit for host: " . $_REQUEST['host']);
+require_once dirname(__FILE__).'/class/GenericClass.php';
 //Fetch Host parameters
 $host = $_REQUEST['host'];
-//$hostName=$_REQUEST['host_name'];
 $databaseType=strtoupper($_REQUEST['database_type']);
-$database=$_REQUEST['db'];
+$db=$_REQUEST['db'];
 $username=$_REQUEST['username'];
 $password = $_REQUEST['password'];
 $priority = $_REQUEST['priority'];
@@ -26,9 +23,14 @@ $table=$_REQUEST['table'];
 $query=$_REQUEST['query'];
 $ruleType = $_REQUEST['ruleType'];
 $vendorData = $_REQUEST['vendorData'];
-require_once dirname(__FILE__).'/../DBConnectors/'.$databaseType.'/DB.php';
-// include DB connector and create a DB connection to the given host
-//require_once dirname(__FILE__).'/../class/RuleVendor.php';
+$timezone = $_REQUEST['timezone'];
+$transactionMode = $_REQUEST['accountType'];
+
+$obj = new GenericClass($timezone);        
+Logger::configure('../config/log.properties');
+$logger = Logger::getLogger("Dispatcher.getMsg");
+$logger->info("Recieved hit for host: " . $_REQUEST['host']);
+    
 try{
     switch(strtoupper($priority)){
         case 'LOW':
@@ -38,11 +40,9 @@ try{
             sleep(2);
             break;
     }
-    
-    $conn = new DB($host,$hostName,$database,$username,$password);    
-    $conn->runQuery($query);
-    $pickedTime = time();
-    $data = $conn->getResult();
+    $obj->getConnection($databaseType,$host,$db,$username,$password,$table);
+    $pickedTime = $obj->getCurrentTimestamp();  
+    $data = $obj->getMessages($query);
     if(sizeof($data)>0){
         $logger->info("Reading each message");
         if($vendorData == "" || $ruleType=="DEFAULT"){
@@ -54,13 +54,12 @@ try{
             $msgId .= $val['MESSAGEID'] . ",";    
             $sender->addMsg($val['PHONENUMBER'],$val['MESSAGETEXT']);
         }        
-        $msgId = substr($msgId, 0,-1);        
-        $conn->runQuery("UPDATE $table set SUCCESSSTATUS='PICKED' , SUBMITTEDTIME = '$pickedTime' where MESSAGEID in ($msgId)");
+        $msgId = substr($msgId, 0,-1);  
+        $obj->updateMessageTable("UPDATE $table set SSTATUS='PICKED' , SUBMITTEDTIME = '$pickedTime' ,TRANSACTIONMODE = '$transactionMode' where MESSAGEID in ($msgId)");        
         $logger->info("Message status updated to PICKED on $host");        
         // check for ruleType and decide the msg distribution accross vendors          
-        $response = $sender->sendMsg();
-		
-        $processedTime = time();
+        $response = $sender->sendMsg();		
+        $processedTime = $obj->getCurrentTimestamp();  
         if($response->success){
             $logger->info("Message succesfully sent. API Response: " . $response->response); 
             $status = "INPROCESS";
@@ -68,12 +67,12 @@ try{
             $logger->info("Message seding error. API Response: " . $respone->error); 
             $status = "FAILED";
         }
-        $conn->runQuery("update $table set ATTEMPTCOUNT = '1', SUCCESSSTATUS='$status' , MIPRESPONSEID = '$response->transactionId' , PROCESSEDTIME = '$processedTime' where MESSAGEID in ($msgId)");
+        $obj->updateMessageTable("update $table set ATTEMPTCOUNT = '1', STATUS='$status' , TRANSACTIONID = '$response->transactionId' , PROCESSEDTIME = '$processedTime' where MESSAGEID in ($msgId)");
         $logger->info("Message status updated to INPROCESS on $host");            
     }else{
         $logger->warn("No messages found on $host ");
     }
-    $conn->closeCxn();
+    $obj->closeDBConnection();
     exit();
     // get vendor and vendor rules
     // send messages

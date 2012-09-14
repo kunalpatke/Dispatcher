@@ -16,7 +16,7 @@ class DB{
       private $logger;
       private $result;
       
-      public function __construct($host,$hostName,$database,$username,$password)
+      public function __construct($host,$database,$username,$password)
       {                              
           Logger::configure('../../config/log.properties');
           $this->logger = Logger::getLogger("Dispatcher.ORACLEDB");
