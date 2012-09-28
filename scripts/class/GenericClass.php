@@ -23,7 +23,7 @@ class GenericClass {
     }
     
     private function setTimezone($tz){
-        $this->timezone = $timezone;
+        $this->timezone = $tz;
         date_default_timezone_set($this->timezone);
     }
     
@@ -102,13 +102,17 @@ class GenericClass {
         return $this->conn->getResult();
     }
     
+    public function getMessageId(){
+        return str_replace(".","",microtime(true));
+    }
+    
     public function updateMessageTable($query){
         $this->conn->runQuery($query);
         return TRUE;
     }
     
     public function computeTransMsgId($format,$splitter,$transId,$msgId){
-        if(strtoupper(format) == "DOUBLE"){
+        if(strtoupper($format) == "DOUBLE"){
             $arr = explode($splitter,$transId);
             if(sizeof($arr) == 2){
                 $this->transactionId = $arr[0];
@@ -131,6 +135,16 @@ class GenericClass {
     public function getMsgId(){
         return $this->messageId;
     }
+    
+    public function getColumnList($columns){
+        $collist=false;
+        if(is_array($columns)){
+            foreach ($columns as $key=>$col) {
+                $collist .= $col.",";
+            }
+            $collist = substr($collist, 0,-1);
+        }
+        return $collist;
+    }
 }
-
 ?>

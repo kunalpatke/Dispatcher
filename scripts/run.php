@@ -33,7 +33,7 @@ if(is_array($configData)){
     require_once dirname(__FILE__).'/../DBConnectors/'.$databaseType.'/DB.php';
     try{        
         $obj = new GenericClass($timezone);        
-        $obj->getConnection($databaseType,$host,$hostName,$db,$username,$password,$table);
+        $obj->getConnection($databaseType,$host,$db,$username,$password,$table);
         $logger->info("Fetch host info from schema_info table");
         $schemaData = $obj->getSchemaData();  
         //while(1){
@@ -58,8 +58,8 @@ if(is_array($configData)){
                 }
             }
             //$obj->closeDBConnection();
-            sleep(5);
-            $logger->info("\n\n\n-------CALLING AGAIN--------\n\n\n");
+            //sleep(5);
+            //$logger->info("\n\n\n-------CALLING AGAIN--------\n\n\n");
         //}
     }
     catch(Exception $e){        

@@ -50,12 +50,17 @@ try{
             require_once dirname(__FILE__).'/../resources/GupShup/Sender/Enterprise.php';
             $sender = new Sender_Enterprise('2000022337', 'ketan123', '');
         }
+        $msgIdQuery = "UPDATE $table set MESSAGEID= CASE ";
         foreach($data as $val){           
-            $msgId .= $val['MESSAGEID'] . ",";    
-            $sender->addMsg($val['PHONENUMBER'],$val['MESSAGETEXT']);
-        }        
-        $msgId = substr($msgId, 0,-1);  
-        $obj->updateMessageTable("UPDATE $table set SSTATUS='PICKED' , SUBMITTEDTIME = '$pickedTime' ,TRANSACTIONMODE = '$transactionMode' where MESSAGEID in ($msgId)");        
+            $msgId .= $val['ID'] . ",";    
+            $messageID = $obj->getMessageId();
+            $sender->addMsg($val['PHONENUMBER'],$val['MESSAGETEXT'],$messageID);  
+            $msgIdQuery .= " when ID = " . $val['ID'] . " Then '$messageID'";
+        }
+        $msgId = substr($msgId, 0,-1);
+        $msgIdQuery .= " END where ID in ($msgId)";
+        $obj->updateMessageTable($msgIdQuery);          
+        $obj->updateMessageTable("UPDATE $table set STATUS='PICKED' , SUBMITTEDTIME = '$pickedTime' ,TRANSACTIONMODE = '$transactionMode' where ID in ($msgId)");        
         $logger->info("Message status updated to PICKED on $host");        
         // check for ruleType and decide the msg distribution accross vendors          
         $response = $sender->sendMsg();		
@@ -67,7 +72,7 @@ try{
             $logger->info("Message seding error. API Response: " . $respone->error); 
             $status = "FAILED";
         }
-        $obj->updateMessageTable("update $table set ATTEMPTCOUNT = '1', STATUS='$status' , TRANSACTIONID = '$response->transactionId' , PROCESSEDTIME = '$processedTime' where MESSAGEID in ($msgId)");
+        $obj->updateMessageTable("update $table set ATTEMPTCOUNT = '1', STATUS='$status' , TRANSACTIONID = '$response->transactionId' , PROCESSEDTIME = '$processedTime' where ID in ($msgId)");
         $logger->info("Message status updated to INPROCESS on $host");            
     }else{
         $logger->warn("No messages found on $host ");

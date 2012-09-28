@@ -50,6 +50,7 @@ class Sender_Enterprise extends Sender {
             $params['password'] = $this->password;
             $params['send_to']  = $message->msisdn;
             $params['msg']      = $message->content;
+            $params['msg_id']   = $message->sessionId;
             $params['timestamp'] = $message->time->format('Y-m-d H:i:s');
             if(!is_null($this->mask)) {
                 $params['mask'] = $this->mask;
@@ -66,6 +67,7 @@ class Sender_Enterprise extends Sender {
                     $message->time = $currentTime;
                 }
                 $rows[] = array(
+                        $message->sessionId,
                         $message->msisdn,
                         $message->content,
                         $this->mask,
@@ -77,6 +79,7 @@ class Sender_Enterprise extends Sender {
             fputs($myFile,
                     '"'
                     .implode('","', array(
+                    'MSGID',
                     'PHONE',
                     'MESSAGE',
                     'MASKS',
@@ -104,7 +107,7 @@ class Sender_Enterprise extends Sender {
         }
         $return = new stdClass();
         $return->success = preg_match('/^success/', $response);        
-		if($return->success) {
+        if($return->success) {
             $data = explode("|",$response);            
             preg_match("/\d+/", $data[sizeof($data)-1], $matches);
             $causeId = $matches[0];
