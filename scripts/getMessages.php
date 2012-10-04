@@ -1,5 +1,4 @@
 <?php
-
 /**
  * Description of Connector.
  * 
@@ -25,6 +24,7 @@ $ruleType = $_REQUEST['ruleType'];
 $vendorData = $_REQUEST['vendorData'];
 $timezone = $_REQUEST['timezone'];
 $transactionMode = $_REQUEST['accountType'];
+$columns = unserialize($_REQUEST['columns']);
 
 $obj = new GenericClass($timezone);        
 Logger::configure('../config/log.properties');
@@ -50,17 +50,17 @@ try{
             require_once dirname(__FILE__).'/../resources/GupShup/Sender/Enterprise.php';
             $sender = new Sender_Enterprise('2000022337', 'ketan123', '');
         }
-        $msgIdQuery = "UPDATE $table set MESSAGEID= CASE ";
+        $msgIdQuery = "UPDATE $table set " . $columns['messageid'] . " = CASE ";
         foreach($data as $val){           
-            $msgId .= $val['ID'] . ",";    
+            $msgId .= $val[$columns['id']] . ",";    
             $messageID = $obj->getMessageId();
-            $sender->addMsg($val['PHONENUMBER'],$val['MESSAGETEXT'],$messageID);  
-            $msgIdQuery .= " when ID = " . $val['ID'] . " Then '$messageID'";
+            $sender->addMsg($val[$columns['phone']],$val[$columns['message']],$messageID);  
+            $msgIdQuery .= " when " . $columns['id'] . " = " . $val[$columns['id']] . " Then '$messageID'";
         }
         $msgId = substr($msgId, 0,-1);
-        $msgIdQuery .= " END where ID in ($msgId)";
+        $msgIdQuery .= " END where " . $columns['id'] . " in ($msgId)";        
         $obj->updateMessageTable($msgIdQuery);          
-        $obj->updateMessageTable("UPDATE $table set STATUS='PICKED' , SUBMITTEDTIME = '$pickedTime' ,TRANSACTIONMODE = '$transactionMode' where ID in ($msgId)");        
+        $obj->updateMessageTable("UPDATE $table set " . $columns['status'] . "='PICKED' , " . $columns['submittime'] . " = '$pickedTime' , " . $columns['mode'] . " = '$transactionMode' where " . $columns['id'] . " in ($msgId)");        
         $logger->info("Message status updated to PICKED on $host");        
         // check for ruleType and decide the msg distribution accross vendors          
         $response = $sender->sendMsg();		
@@ -72,7 +72,7 @@ try{
             $logger->info("Message seding error. API Response: " . $respone->error); 
             $status = "FAILED";
         }
-        $obj->updateMessageTable("update $table set ATTEMPTCOUNT = '1', STATUS='$status' , TRANSACTIONID = '$response->transactionId' , PROCESSEDTIME = '$processedTime' where ID in ($msgId)");
+        $obj->updateMessageTable("update $table set " . $columns['attempt'] . " = '1', " . $columns['status'] . "='$status' , " . $columns['transactionid'] . "  = '$response->transactionId' , " . $columns['processtime'] . " = '$processedTime' where " . $columns['id'] . " in ($msgId)");
         $logger->info("Message status updated to INPROCESS on $host");            
     }else{
         $logger->warn("No messages found on $host ");

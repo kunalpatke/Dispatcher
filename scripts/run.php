@@ -19,6 +19,7 @@ $logger = Logger::getLogger("Dispatcher.run");
 $logger->info("Fetching config data");
 $configData = parse_ini_file("../config/setup.properties",true);
 $customDB = $configData['custom_db'];
+$timezone= $configData['timezone']['timezone'];  
 if(is_array($configData)){
     $logger->info("Host found for schema_info table");
     $databaseType = strtoupper($customDB['database_type']);
@@ -26,8 +27,7 @@ if(is_array($configData)){
     $db = $customDB['database'];
     $username = $customDB['username'];
     $password = $customDB['password'];    
-    $table =  $customDB['table'];
-    $timezone = $customDB['timezone'];
+    $table =  $customDB['table'];    
     
     // connect to the host and get all message hosts info
     require_once dirname(__FILE__).'/../DBConnectors/'.$databaseType.'/DB.php';
@@ -50,7 +50,7 @@ if(is_array($configData)){
                     else
                         $vendorData = serialize ($vendorData);
                     $ruleType = $obj->getRuleType();
-                    $params=array("host"=>$hostData['host'],"database_type"=>$hostData['database_type'],"db"=>$hostData['database_name'],"username"=>$hostData['username'],"password"=>$hostData['password'],"priority"=>$hostData['priority'],"table"=>$hostData['table_name'],"query"=>$hostData['query'],"ruleType"=>$ruleType,"vendorData"=>$vendorData,"timezone"=>$timezone,"accountType"=>$hostData['account_type']);                        
+                    $params=array("host"=>$hostData['host'],"database_type"=>$hostData['database_type'],"db"=>$hostData['database_name'],"username"=>$hostData['username'],"password"=>$hostData['password'],"priority"=>$hostData['priority'],"table"=>$hostData['table_name'],"query"=>$hostData['query'],"ruleType"=>$ruleType,"vendorData"=>$vendorData,"timezone"=>$timezone,"accountType"=>$hostData['account_type'],"columns"=>$hostData['columns']);                        
                     AsyncCall::curl_post_async($url,$params);
                     $logger->info("Async call made to: " . $hostData['host']);
                 }else{

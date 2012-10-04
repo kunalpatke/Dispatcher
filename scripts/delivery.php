@@ -17,6 +17,7 @@ $logger->info("Recieved hit with params: " . $_SERVER['QUERY_STRING']);
 
 $configData = parse_ini_file("../config/setup.properties",true);
 $deliveryData = $configData['delivery'];
+$timezone= $configData['timezone']['timezone'];  
 if(is_array($deliveryData)){    
     $logger->info("Delivery setup info found");
     $phone = $_REQUEST[$deliveryData['phone']];
@@ -26,7 +27,7 @@ if(is_array($deliveryData)){
     $accountType = $_REQUEST[$deliveryData['accountType']];
     $logger->info("Phone: $phone , Status: $status, Cause: $cause, Time: $timestamp");
     $attemptCount = $deliveryData['attemptCount'];
-    $obj = new GenericClass($deliveryData['timezone']);
+    $obj = new GenericClass($timezone);
     
     if($obj->computeTransMsgId($deliveryData['transMsgFormat'],$deliveryData['stringSplitter'],$_REQUEST[$deliveryData['transactionId']],$_REQUEST[$deliveryData['messageId']])){
         $transId = $obj->getTransId();
@@ -40,21 +41,22 @@ if(is_array($deliveryData)){
             foreach($schemaData as $hostData){
                 if($hostData['status']){
                     $table = $hostData['table_name'];
+                    $columns = unserialize($hostData['columns']);
                     $logger->info("Connecting to ".$hostData['host']);
                     $obj->getConnection($hostData['database_type'],$hostData['host'],$hostData['database_name'],$hostData['username'],$hostData['password'],$hostData['table_name']);
-                    $obj->updateMessageTable("UPDATE $table set STATUS='$status' , DELIVERYTIME =  '$timestamp' , CAUSE = '$cause' where TRANSACTIONID = '$transId' and PHONENUMBER = '$phone' and MESSAGEID = '$msgId'");
+                    $obj->updateMessageTable("UPDATE $table set " . $columns['status'] . "='$status' , " . $columns['deliverytime'] . " =  '$timestamp' , " . $columns['cause'] . " = '$cause' where " . $columns['transactionid'] . " = '$transId' and " . $columns['phone'] . " = '$phone' and " . $columns['messageid']. " = '$msgId'");
                     //$obj->closeDBConnection(); 
                     $logger->info("Status Updated.." . "Phone: $phone | Delivery Time: $timestamp | Status: $status | Cause: $cause | causeId: $transId | messageId: $msgId");
                     if($status != $deliveryData['successStatusText']){
                         // retry if not delivered
                         $logger->info("Retry message sending to $phone");
-                        $data = $obj->getMessages("select ID,PHONENUMBER,MESSAGETEXT, ATTEMPTCOUNT from $table where TRANSACTIONID = '$transId' and PHONENUMBER = '$phone' and MESSAGEID = '$msgId' limit 1");                            
+                        $data = $obj->getMessages("select * from $table where " . $columns['transactionid'] . " = '$transId' and " . $columns['phone'] . " = '$phone' and " . $columns['messageid']. " = '$msgId' limit 1");                            
                         if(sizeof($data)>0){                            
-                            $id = $data[0]['ID'];
-                            $ph = $data[0]['PHONENUMBER'];
-                            $msgText = $data[0]['MESSAGETEXT'];
-                            $count = $data[0]['ATTEMPTCOUNT'];
-                            echo $attemptCount . " " . $count;
+                            $id = $data[0][$columns['id']];
+                            $ph = $data[0][$columns['phone']];
+                            $msgText = $data[0][$columns['message']];
+                            $count = $data[0][$columns['attempt']];
+                            //echo $attemptCount . " " . $count;
                             if($attemptCount > $count ){
                                 $vendorData = $obj->getVendorData($hostData['rule_id']);                        
                                 $logger->info("Message not delivered. Cause: $cause");
@@ -66,11 +68,8 @@ if(is_array($deliveryData)){
                                 if($vendorData == "" || $ruleType=="DEFAULT"){
                                 // send using gupshupAPI                                                                                    
                                     require_once dirname(__FILE__).'/../resources/GupShup/Sender/Enterprise.php';
-                                    $sender = new Sender_Enterprise('2000022337', 'ketan123');
-                                    foreach($data as $val){           
-                                        $id = $val['ID'];    
-                                        $sender->addMsg($ph,$msgText,$msgId);
-                                    }
+                                    $sender = new Sender_Enterprise('2000022337', 'ketan123');                                                                                     
+                                    $sender->addMsg($ph,$msgText,$msgId);
                                     $logger->info("Sending message to $ph. Attemp number ".$coun+1);
                                     $response = $sender->sendMsg();		
                                     $processedTime = $obj->getCurrentTimestamp();  
@@ -81,7 +80,7 @@ if(is_array($deliveryData)){
                                         $logger->error("Message sending error. API Response: " . $respone->error); 
                                         $status = "FAILED";
                                     }
-                                    $obj->updateMessageTable("update $table set ATTEMPTCOUNT = ATTEMPTCOUNT+1, STATUS='$status' , TRANSACTIONID = '$response->transactionId' , PROCESSEDTIME = '$processedTime' where ID = '$id'");
+                                    $obj->updateMessageTable("update $table set " . $columns['attempt'] . " = " . $columns['attempt'] . "+1," .$columns['status'] . " = '$status' , " . $columns['transactionid'] . " = '$response->transactionId' , " . $columns['processtime'] . " = '$processedTime' where " . $columns['id'] . " = '$id'");
                                     $logger->info("Message status updated to INPROCESS");   
                                 }else{
                                     $logger->info("Some other vendor found.");
