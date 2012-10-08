@@ -48,7 +48,10 @@ try{
         if($vendorData == "" || $ruleType=="DEFAULT"){
             // send using gupshupAPI
             require_once dirname(__FILE__).'/../resources/GupShup/Sender/Enterprise.php';
-            $sender = new Sender_Enterprise('2000022337', 'ketan123', '');
+            $configData = parse_ini_file("../config/setup.properties",true);
+            $senderInfo = $configData['sender'];
+            $logger->info("Using Gupshup credentials for message sending: ". $senderInfo['id']);
+            $sender = new Sender_Enterprise($senderInfo['id'], $senderInfo['password'],$senderInfo['url']);                       
         }
         $msgIdQuery = "UPDATE $table set " . $columns['messageid'] . " = CASE ";
         foreach($data as $val){           
@@ -63,17 +66,22 @@ try{
         $obj->updateMessageTable("UPDATE $table set " . $columns['status'] . "='PICKED' , " . $columns['submittime'] . " = '$pickedTime' , " . $columns['mode'] . " = '$transactionMode' where " . $columns['id'] . " in ($msgId)");        
         $logger->info("Message status updated to PICKED on $host");        
         // check for ruleType and decide the msg distribution accross vendors          
-        $response = $sender->sendMsg();		
+        try{
+            $response = $sender->sendMsg();		
+        }catch(Exception $e){
+            $logger->error("Exception occured in message sending. " . $e->getMessage());
+            $response->error = "Message sending exception: " . $e->getMessage();
+        }
         $processedTime = $obj->getCurrentTimestamp();  
         if($response->success){
             $logger->info("Message succesfully sent. API Response: " . $response->response); 
             $status = "INPROCESS";
         }else{
-            $logger->info("Message seding error. API Response: " . $respone->error); 
+            $logger->info("Message sending error. API Response: " . $respone->error); 
             $status = "FAILED";
         }
         $obj->updateMessageTable("update $table set " . $columns['attempt'] . " = '1', " . $columns['status'] . "='$status' , " . $columns['transactionid'] . "  = '$response->transactionId' , " . $columns['processtime'] . " = '$processedTime' where " . $columns['id'] . " in ($msgId)");
-        $logger->info("Message status updated to INPROCESS on $host");            
+        $logger->info("Message status updated to $status on $host");            
     }else{
         $logger->warn("No messages found on $host ");
     }

@@ -66,9 +66,10 @@ if(is_array($deliveryData)){
                                     $vendorData = serialize ($vendorData);
                                 $ruleType = $obj->getRuleType();
                                 if($vendorData == "" || $ruleType=="DEFAULT"){
-                                // send using gupshupAPI                                                                                    
-                                    require_once dirname(__FILE__).'/../resources/GupShup/Sender/Enterprise.php';
-                                    $sender = new Sender_Enterprise('2000022337', 'ketan123');                                                                                     
+                                // send using gupshupAPI   
+                                    require_once dirname(__FILE__).'/../resources/GupShup/Sender/Enterprise.php';            
+                                    $senderInfo = $configData['sender'];            
+                                    $sender = new Sender_Enterprise($senderInfo['id'], $senderInfo['password'],$senderInfo['url']);                                                           
                                     $sender->addMsg($ph,$msgText,$msgId);
                                     $logger->info("Sending message to $ph. Attemp number ".$coun+1);
                                     $response = $sender->sendMsg();		
