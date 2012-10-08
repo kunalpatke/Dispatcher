@@ -19,14 +19,15 @@ class Sender_Enterprise extends Sender {
      * @var String
      */
     public $mask;
-    private $_url = "http://enterprise.smsgupshup.com/GatewayAPI/rest";
+    public $_url;// = "http://enterprise.smsgupshup.com/GatewayAPI/rest";
    // private $_url = "http://test.smsgupshup.com/GatewayAPI/rest";
     //private $_url = "http://localhost/fileHandler.php";
 
-    public function  __construct($id, $password, $mask = NULL,$msgType=NULL) {
+    public function  __construct($id, $password,$url=NULL, $mask = NULL,$msgType=NULL) {
         $this->id       = $id;
         $this->password = $password;
         $this->mask     = $mask;
+        $this->_url = $url;
         if($msgType != "")
             $this->msgType = $msgType;
     }
@@ -34,7 +35,7 @@ class Sender_Enterprise extends Sender {
      * Sends the response
      * @return Boolean
      */
-    public function sendMsg() {
+    public function sendMsg() {        
         $rows = array();
         $currentTime = new DateTime('now', new DateTimeZone('Asia/Kolkata'));
         $msgCount = sizeof($this->messages);
@@ -118,13 +119,13 @@ class Sender_Enterprise extends Sender {
             $return->error = $response;
         }
         return $return;
-    }
+    }        
 }
-
 //$sender = new Sender_Enterprise('2000022337', 'ketan123', '');
+//$sender->setSenderUrl("http://enterprise.smsgupshup.com/GatewayAPI/rest");
 //$sender->addMsg('919833598918', "This is 10 Minutes");
-////$sender->addMsg('919833598918', "This is 10 Minutes");
+//////$sender->addMsg('919833598918', "This is 10 Minutes");
 //$response = $sender->sendMsg(); 
-////print_r($response);
-//echo $response->transactionId;
+//////print_r($response);
+//echo $response->response;
 ?>
