@@ -1,0 +1,10 @@
+12/10/05 17:13:35 : Socket Error # 10060<EOL>Connection timed out.
+12/10/05 17:13:46 : Socket Error # 10060<EOL>Connection timed out.
+12/10/05 17:17:00 : Socket Error # 10060<EOL>Connection timed out.
+12/10/05 17:18:17 : Socket Error # 10060<EOL>Connection timed out.
+12/10/05 17:24:22 : Socket Error # 10060<EOL>Connection timed out.
+12/10/05 17:40:16 : Socket Error # 11001<EOL>Host not found.
+12/10/05 17:40:17 : Socket Error # 10060<EOL>Connection timed out.
+12/10/05 17:40:31 : Connect timed out.
+12/10/05 17:41:29 : Error connecting with SSL.<EOL>Error connecting with SSL.<EOL>error:1408F10B:SSL routines:SSL3_GET_RECORD:wrong version number
+12/10/08 10:41:05 : Socket Error # 11001<EOL>Host not found.
