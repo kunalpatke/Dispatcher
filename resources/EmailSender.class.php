@@ -19,10 +19,9 @@ public static function send($head, $subject, $body, $attachments=array())
     if (count($head['from'])!=1) return false;
     if (count($head['to'  ])==0) return false;
    
-
     $to='';
     foreach($head['to'] as $cc_addr=>$cc_name)
-        $to.= $cc_name . "<" . $cc_addr . ">";
+        $to.= $cc_name . "<" . $cc_addr . ">";    
     $fromaddress = array_pop( array_keys  ($head['from']) );
     $fromname    = array_pop( array_values($head['from']) );
     $eol="\r\n";
