@@ -9,23 +9,22 @@ require_once dirname(__FILE__).'/../resources/log4php/Logger.php';
 Logger::configure('../config/log.properties');
 $logger = Logger::getLogger("Dispatcher.report");
 require_once dirname(__FILE__).'/class/GenericClass.php';    
-$accountType = strtoupper($_REQUEST['accountType']);
-$from = ($_REQUEST['from']);
-$to = $_REQUEST['to'];
-
-if(isset($accountType) && $accountType != ""){
+$accountType = isset($_REQUEST['actType']) ? ($_REQUEST['actType'] != '') ? strtoupper($_REQUEST['actType']):NULL:NULL;
+$from = isset($_REQUEST['from']) ? ($_REQUEST['from'] != '') ? $_REQUEST['from']:NULL:NULL;
+$to = isset($_REQUEST['to']) ? ($_REQUEST['to'] != '') ? $_REQUEST['to']:NULL:NULL;
+$status = isset($_REQUEST['status']) ? ($_REQUEST['status'] != '') ? strtoupper($_REQUEST['status']):NULL:NULL;
+$format = isset($_REQUEST['format']) ? ($_REQUEST['format'] != '') ? strtoupper($_REQUEST['format']):"DOWNLOAD":"DOWNLOAD";
+if(!is_null($accountType)){
     $logger->info("Generating report for account type: $accountType");
     $configData = parse_ini_file("../config/setup.properties",true);
     $timezone= $configData['timezone']['timezone'];    
     $columns = $configData['reportCols'];    
     $customDB = $configData['custom_db'];
-    $obj = new GenericClass($timezone);
-    $from = strtotime($from)*1000;
-    $to = strtotime($to)*1000;
+    $obj = new GenericClass($timezone);    
     $obj->getConnection(strtoupper($customDB['database_type']),$customDB['host'],$customDB['database'],$customDB['username'],$customDB['password'],$customDB['table']);        
-    $schemaData = $obj->getSchemaData(" where account_type = '$accountType' limit 1");  
+    $schemaData = $obj->getSchemaData(" where account_type like '$accountType' limit 1");  
     $obj->closeDBConnection();
-    $file = "../reports/Report-" . date('Y-m-d H:i:s'). ".csv";
+    $file = "../reports/Report#".date("s").".csv";
     $logger->info("File created: $file");
     $handle = fopen($file, 'w');
     if(sizeof($schemaData) != 0){
@@ -36,15 +35,26 @@ if(isset($accountType) && $accountType != ""){
                 $columnList = $obj->getColumnList($columns);
                 if($columnList){
                     $query = "select $columnList from ". $hostData['table_name'];
-                    if($from != ''){                    
-                        $from = strtotime($from)*1000;
-                        $query .= " where " . $columns['stime'] ."  >= '$from'";                    
+                    if(!is_null($from) || !is_null($to) || !is_null($status) ){
+                        $query .= " where ";
+                        if(!is_null($from)){                    
+                            $from = strtotime($from)*1000;
+                            $query .= $columns['sdatetime'] ."  >= '$from'";                    
+                        }
+                        if(!is_null($to)){
+                            $to = strtotime($to)*1000; 
+                            if(!is_null($from))
+                                $query .= " && " ;
+                            $query .= $columns['sdatetime'] ." <= '$to'";                            
+                        }
+                        if(!is_null($status)){
+                            if(!is_null($from) || !is_null($to))
+                                $query .= " && " ;
+                            $query .= $columns['status'] ." like '$status'";
+                        }
                     }
-                    if($to != ''){
-                        $to = strtotime($to)*1000;                
-                        $query .= " where " . $columns['stime'] ." <= '$to'";
-                    }
-                    $ans = $obj->getMessages($query);                            
+                    $ans = $obj->getMessages($query);    
+                    
                     if(sizeof($ans)!=0){                        
                         $row = $columnList . "\n";
                         foreach ($ans as $data) {                            
@@ -54,19 +64,17 @@ if(isset($accountType) && $accountType != ""){
                                 else
                                     $result = $data[$value];                               
                                 $row .= $result . ",";
-                            }                            
-                            $row = substr($row, 0,-1);                                                    
+                            }                                                        
+                            $row .= "\n";
                         }
-                        fwrite($handle, $row);
-                        fclose($handle);
-                        $logger->info("Report format: " . $_REQUEST['format']);
-                        if (strtoupper($_REQUEST['format']) == 'EMAIL'){
-                            $emailProperties = $configData['reportEmail'];                            
-                            if(filesize($file) > $emailProperties['maxfilesize']){
-                                $logger->info("Filesize grater than maximum allowed for email:  " . filesize($file));
-                                $_REQUEST['format'] = "DOWNLOAD";
-                                break;
-                            }                              
+                    }                    
+                    fwrite($handle, $row);
+                    fclose($handle);
+                    $logger->info("Report format: " . $format);
+                    if ($format == 'EMAIL'){
+                        $emailProperties = $configData['reportEmail'];      
+                        $size = filesize($file);
+                        if($size < $emailProperties['maxfilesize']*1024*1024){                                            
                             require_once dirname(__FILE__).'/../resources/EmailSender.class.php';
                             $files = array($file);    
                             $head = array(
@@ -81,16 +89,44 @@ if(isset($accountType) && $accountType != ""){
                                $logger->error("Email failed");
                            }  
                         }
-                        if(isset($_REQUEST['format']) && strtoupper($_REQUEST['format']) == 'DOWNLOAD'){ 
-                            header("Content-type: application/octet-stream");
-                            header("Content-Disposition: attachment; filename=$file");   
-                        }                        
-                    }else{
-                        die("data not found");
-                    }            
+                        else{
+                            $logger->info("File size grater than maximum allowed size for email: $size");
+                            //echo "<script type='text/javascript'> alert('File size greater than maximum allowed size for email: $size');</script>";
+                            $format = "DOWNLOAD";
+                        }
+                    }
+                    if($format == 'DOWNLOAD'){ 
+                        $logger->info("Downloading file");
+                        if (file_exists($file))
+                        {
+                            if(false !== ($hanlder = fopen($file, 'r')))
+                            {
+                                header('Content-Description: File Transfer');
+                                header('Content-Type: application/octet-stream');
+                                header('Content-Disposition: attachment; filename='.basename($file));
+                                header('Content-Transfer-Encoding: chunked'); //changed to chunked
+                                header('Expires: 0');
+                                header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
+                                header('Pragma: public');        
+                                while(false !== ($chunk = fread($handler,4096)))
+                                {
+                                    echo $chunk;
+                                }
+                            }
+                            exit;
+                        }else{
+                            $logger->error("File does not exist");
+                        }
+
+//                        $logger->info("Report format: " . $format);
+//                        $path_parts = pathinfo($file);
+//                        header("Content-type: application/octet-stream");
+//                        header("Content-Disposition: attachment; filename=\"".$path_parts["basename"]."\"");   
+//                        header("Content-length: $size");
+                    }                                            
                 }
             }
-        }    
+        }   
     }
 }
 ?>
