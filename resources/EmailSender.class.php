@@ -72,7 +72,7 @@ public static function send($head, $subject, $body, $attachments=array())
     $msg .= "<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\">".$eol;
     $msg .= "<html>".$eol;
     $msg .= "<body>".$eol;
-    $msg .= EmailSender::mime_html_encode($body).$eol;
+    $msg .= self::mime_html_encode($body).$eol;
     $msg .= "</body>".$eol;
     $msg .= "</html>".$eol;
     $msg .= $eol.$eol;
@@ -132,7 +132,7 @@ private static function mimelist()
 	$arr['pdf'  ]='application/pdf';
 	return $arr;
 }
-private function mime_html_encode($input , $line_max = 76)
+private static function mime_html_encode($input , $line_max = 76)
   {
    
     $eol    = "\r\n";//MAIL_MIMEPART_CRLF
